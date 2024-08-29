@@ -14,30 +14,28 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.8"
-      # - name: Install dependencies
-      #   run: |
-      #     python -m pip install --upgrade pip
-      #     pip install requests
-      # - name: Run GraphQL query and update data
-      #   run: python fetch_data.py
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+      - name: Run GraphQL query and update data
+        run: python fetch_data.py
+      - name: Create meta.json file
+        run: echo {\"last_updated\":\"$(date --iso-8601=seconds -u)\"} > $GITHUB_WORKSPACE/meta.json
       - name: List info
         run: ls -la
       - name: List info 2
         run: echo $GITHUB_WORKSPACE
       - name: List info 3
         run: ls $GITHUB_WORKSPACE
-      - name: List info 4
-        run: ls $GITHUB_WORKSPACE/tjs-updates
       - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: >
-          echo {\"last_updated\":\"$(date --iso-8601=seconds -u)\"} > $GITHUB_WORKSPACE/tjs-updates/meta.json
-          
           git config user.name "TJs-Scraper" && git config user.email "scraper@users.noreply.github.com"
           
-          git add $GITHUB_WORKSPACE/tjs-updates/data.json
-          git add $GITHUB_WORKSPACE/tjs-updates/meta.json
+          git add $GITHUB_WORKSPACE/data.json
+          git add $GITHUB_WORKSPACE/meta.json
 
           git commit -m "Daily data update "$(date -u)" [skip ci]"
           git push
