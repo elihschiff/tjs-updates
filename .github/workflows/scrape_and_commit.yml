@@ -14,16 +14,18 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.8"
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests
+      # - name: Install dependencies
+      #   run: |
+      #     python -m pip install --upgrade pip
+      #     pip install requests
       # - name: Run GraphQL query and update data
       #   run: python fetch_data.py
       - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: >
+          ls $GITHUB_WORKSPACE
+          ls $GITHUB_WORKSPACE/tjs-updates
           echo {\"last_updated\":\"$(date --iso-8601=seconds -u)\"} > $GITHUB_WORKSPACE/tjs-updates/meta.json
           
           git config user.name "TJs-Scraper" && git config user.email "scraper@users.noreply.github.com"
