@@ -3,8 +3,35 @@ import json
 
 MY_STORE_NUMBER = 544
 
+
 def build_query(page, with_availability=True):
-    availability_filter = ', availability: { match: "1" }' if with_availability else ''
+    availability_filter = ', availability: { match: "1" }' if with_availability else ""
+
+    # Fields to remove when availability is false
+    optional_fields = ""
+    if with_availability:
+        optional_fields = """
+            nutrition {{
+                calories_per_serving
+                display_sequence
+                panel_id
+                panel_title
+                serving_size
+                servings_per_container
+                details {{
+                    amount
+                    display_seq
+                    nutritional_item
+                    percent_dv
+                }}
+            }}
+            ingredients {{
+                display_sequence
+                ingredient
+            }}
+            item_story_marketing
+        """
+
     query = f"""
     query Products {{
         products(
@@ -128,24 +155,7 @@ def build_query(page, with_availability=True):
                     value
                     website_id
                 }}
-                nutrition {{
-                    calories_per_serving
-                    display_sequence
-                    panel_id
-                    panel_title
-                    serving_size
-                    servings_per_container
-                    details {{
-                        amount
-                        display_seq
-                        nutritional_item
-                        percent_dv
-                    }}
-                }}
-                ingredients {{
-                    display_sequence
-                    ingredient
-                }}
+                {optional_fields}
                 image {{
                     url
                     label
@@ -192,7 +202,6 @@ def build_query(page, with_availability=True):
                     types
                     uid
                 }}
-                item_story_marketing
                 allergens {{
                     display_sequence
                     ingredient
@@ -203,13 +212,19 @@ def build_query(page, with_availability=True):
     """
     return query
 
+
 def fetch_page(page, with_availability=True):
     query = build_query(page, with_availability)
-    response = requests.post('https://www.traderjoes.com/api/graphql', json={'query': query})
+    response = requests.post(
+        "https://www.traderjoes.com/api/graphql", json={"query": query}
+    )
     if response.status_code == 200:
         return response.json()
     else:
-        raise Exception(f"Query failed with status code {response.status_code}: {response.text}")
+        raise Exception(
+            f"Query failed with status code {response.status_code}: {response.text}"
+        )
+
 
 def fetch_all_data(with_availability=True):
     all_items = []
@@ -223,37 +238,39 @@ def fetch_all_data(with_availability=True):
         data = fetch_page(current_page, with_availability)
 
         # Extract products data
-        products_data = data['data']['products']
+        products_data = data["data"]["products"]
 
         # Add the items from the current page to the combined list
-        all_items.extend(products_data['items'])
+        all_items.extend(products_data["items"])
 
         # Update the total_pages value based on the returned data
-        total_pages = products_data['page_info']['total_pages']
+        total_pages = products_data["page_info"]["total_pages"]
 
         # Move to the next page
         current_page += 1
 
-    data['data']['products']['items'] = all_items
-    del data['data']['products']['page_info']
-    data = data['data']
+    data["data"]["products"]["items"] = all_items
+    del data["data"]["products"]["page_info"]
+    data = data["data"]
 
     return data
+
 
 def main():
     # First fetch with availability
     available_items = fetch_all_data(with_availability=True)
 
     # Write the available items to a JSON file
-    with open('data.json', 'w') as f:
+    with open("data.json", "w") as f:
         json.dump(available_items, f, indent=2)
 
     # Second fetch without availability
     all_items = fetch_all_data(with_availability=False)
 
     # Write all items (with and without availability) to a JSON file
-    with open('all_data.json', 'w') as f:
+    with open("all_data.json", "w") as f:
         json.dump(all_items, f, indent=2)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
