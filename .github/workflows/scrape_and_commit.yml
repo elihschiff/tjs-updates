@@ -24,7 +24,7 @@ jobs:
         run: echo {\"last_updated\":\"$(date --iso-8601=seconds -u)\"} > $GITHUB_WORKSPACE/meta.json
       - name: Commit and push changes
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "TJs-Scraper" && git config user.email "scraper@users.noreply.github.com"
           
