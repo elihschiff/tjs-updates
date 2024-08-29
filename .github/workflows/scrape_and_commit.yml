@@ -1,0 +1,37 @@
+---
+name: Daily GraphQL Scrape and Commit
+on:
+  schedule:
+    - cron: 0 0 * * *
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+      - name: Run GraphQL query and update data
+        run: python fetch_data.py
+      - name: Commit and push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          git config --global user.name "workflow"
+
+          git config --global user.email "workflow@users.noreply.github.com"
+          git add data.json
+
+          # Only commit if there are changes
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "Daily data update [skip ci]"
+            git push
+          else
+            echo "No changes detected, skipping commit."
+          fi
