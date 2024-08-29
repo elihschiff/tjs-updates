@@ -50,7 +50,6 @@ def fetch_page(page):
                 only_x_left_in_stock
                 options_container
                 other_images
-                popularity
                 primary_image
                 product_label
                 promotion
