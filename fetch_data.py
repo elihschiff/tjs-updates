@@ -218,6 +218,7 @@ def fetch_all_data(with_availability=True):
 
     data = {}
     while current_page <= total_pages:
+        print(f"Fetching page {current_page}/{total_pages}")
         # Fetch data for the current page
         data = fetch_page(current_page, with_availability)
 
