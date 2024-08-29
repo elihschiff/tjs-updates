@@ -24,8 +24,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: >
+          echo $GITHUB_WORKSPACE
           ls $GITHUB_WORKSPACE
           ls $GITHUB_WORKSPACE/tjs-updates
+          echo debug done
           echo {\"last_updated\":\"$(date --iso-8601=seconds -u)\"} > $GITHUB_WORKSPACE/tjs-updates/meta.json
           
           git config user.name "TJs-Scraper" && git config user.email "scraper@users.noreply.github.com"
