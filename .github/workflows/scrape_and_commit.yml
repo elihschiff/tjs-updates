@@ -22,7 +22,7 @@ jobs:
         run: python fetch_data.py
       - name: Commit and push changes
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: >
           git config --global user.name "workflow"
 
