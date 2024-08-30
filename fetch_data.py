@@ -146,7 +146,7 @@ def fetch_all_data(with_availability=True):
     del data['data']['products']['page_info']
     data = data['data']
 
-    data['products']['items'].sort(key=lambda x: x['name'])
+    data['products']['items'].sort(key=lambda x: (x['name'], x['id'], x['sku'], x['uid']))
 
     return data
 
