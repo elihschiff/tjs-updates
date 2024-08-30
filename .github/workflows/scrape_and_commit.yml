@@ -20,8 +20,8 @@ jobs:
           pip install requests
       - name: Run GraphQL query and update data
         run: python fetch_data.py
-      - name: Create meta.json file
-        run: echo {\"last_updated\":\"$(date --iso-8601=seconds -u)\"} > $GITHUB_WORKSPACE/meta.json
+      # - name: Create meta.json file
+      #   run: echo {\"last_updated\":\"$(date --iso-8601=seconds -u)\"} > $GITHUB_WORKSPACE/meta.json
       - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -30,5 +30,10 @@ jobs:
           
           git add .
 
-          git commit -m "Data update $(date -u) [skip ci]"
-          git push
+          # Check if there are any changes to commit
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Data update $(date -u) [skip ci]"
+            git push
+          fi
