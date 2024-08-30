@@ -5,7 +5,7 @@ MY_STORE_NUMBER = 544
 
 def build_query(page, with_availability=True):
     availability_filter = ', availability: { match: "1" }' if with_availability else ''
-    
+
     # Base fields list
     fields = [
         "attribute_set_id",
@@ -86,7 +86,7 @@ def build_query(page, with_availability=True):
             "ingredients { display_sequence ingredient }",
             "item_story_marketing"
         ])
-    
+
     fields_query = "\n".join(fields)
 
     query = f"""
@@ -146,6 +146,8 @@ def fetch_all_data(with_availability=True):
     del data['data']['products']['page_info']
     data = data['data']
 
+    data['products']['items'].sort(key=lambda x: x['name'])
+
     return data
 
 def main():
@@ -154,14 +156,14 @@ def main():
 
     # Write the available items to a JSON file
     with open('data.json', 'w') as f:
-        json.dump(available_items, f, indent=2)
+        json.dump(available_items, f, indent=2, sort_keys=True)
 
     # Second fetch without availability
     all_items = fetch_all_data(with_availability=False)
 
     # Write all items (with and without availability) to a JSON file
     with open('all_data.json', 'w') as f:
-        json.dump(all_items, f, indent=2)
+        json.dump(all_items, f, indent=2, sort_keys=True)
 
 if __name__ == '__main__':
     main()
