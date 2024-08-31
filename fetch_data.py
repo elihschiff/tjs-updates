@@ -147,6 +147,7 @@ def fetch_all_data(with_availability=True):
     data = data['data']
 
     data['products']['items'].sort(key=lambda x: (x['name'], x['id'], x['sku'], x['uid']))
+    [panel['details'].sort(key=lambda detail: detail['nutritional_item']) for product in data['products']['items'] if 'nutrition' in product for panel in product['nutrition']]
 
     return data
 
