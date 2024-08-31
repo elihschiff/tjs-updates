@@ -3,6 +3,219 @@ import json
 
 MY_STORE_NUMBER = 544
 
+# This code is for items that the store buys for itself like printer paper
+NON_CONSUMER_PRODUCT_CODE = "D40702"
+
+# This map is made by an ai and may not be 100% accurate
+CATEGORY_CODE_MAP = {
+    "D40702": "Non-consumer/non-purchaseable items for the store",
+    "D10501": "Household items",
+    "D20801": "Fresh Fruits",
+    "D11732": "Canned Fish/Seafood",
+    "D20201": "Salads and Salad Kits",
+    "D11323": "Ice Cream",
+    "D11315": "Frozen Meals",
+    "D10101": "Sweets and Candy",
+    "D10103": "Specialty Chocolate",
+    "D10104": "Mints and Breath Fresheners",
+    "D10105": "Gummies and Jelly Candy",
+    "D10201": "Coffee",
+    "D10202": "Tea",
+    "D10203": "Tea Mixes and Concentrates",
+    "D10301": "Crackers and Crispbreads",
+    "D10302": "Chips and Tortilla Chips",
+    "D10303": "Snack Mixes",
+    "D10304": "Pretzels and Snack Crackers",
+    "D10305": "Snacks and Jerky",
+    "D10306": "Popcorn and Puffed Snacks",
+    "D10400": "Cookies",
+    "D10401": "Biscotti and Shortbread",
+    "D10403": "Wafer Cookies and Snaps",
+    "D10404": "Gluten-Free and Allergen-Free Cookies",
+    "D10405": "Cookie Assortments",
+    "D10406": "Sandwich Cookies",
+    "D10407": "Ice Cream Cones and Novelty Ice Cream",
+    "D10500": "Candles and Household Fabrics",
+    "D10601": "Dietary Supplements",
+    "D10603": "Throat Sprays and Wellness Drops",
+    "D10604": "Multi-Vitamin Supplements",
+    "D10605": "Collagen and Fiber Supplements",
+    "D10606": "Protein Powders",
+    "D10607": "Miscellaneous Vitamins and Supplements",
+    "D10700": "Skin Care and Face Care Products",
+    "D10701": "Body Care and Bath Products",
+    "D10801": "Juices and Lemonades",
+    "D10803": "Lemonades",
+    "D10804": "Ready to Drink Teas",
+    "D10808": "Fruit Juices and Blends",
+    "D10809": "Non-Dairy Beverages",
+    "D10810": "Cold Brew and Ready to Drink Coffees",
+    "D10811": "Sodas and Sparkling Beverages",
+    "D10812": "Sparkling Water and Mineral Water",
+    "D10901": "Sparkling and Mineral Waters",
+    "D10902": "Mountain Spring Water",
+    "D11001": "Flavored Seltzers and Sparklings with Fruit Juice",
+    "D11103": "Non-Dairy Beverages - Specialty",
+    "D11200": "Reusable Bags and Produce Bags",
+    "D11204": "Reusable Shopping Bags",
+    "D11312": "Frozen Appetizers & Snacks",
+    "D11313": "Frozen Breakfast Foods & Pancakes",
+    "D11314": "Frozen Desserts & Treats",
+    "D11316": "Frozen Fruits & Smoothie Ingredients",
+    "D11317": "Frozen Meats & Seafood",
+    "D11318": "Frozen Meatless & Plant-Based Foods",
+    "D11319": "Frozen Pizzas & Flatbreads",
+    "D11320": "Frozen Rice & Grain Dishes",
+    "D11321": "Frozen Fish & Seafood",
+    "D11322": "Frozen Vegetables & Sides",
+    "D11324": "Frozen Breads",
+    "D11401": "Non-Alcoholic Beer and Beverages",
+    "D11501": "Granolas and Clusters",
+    "D11502": "Oats and Oatmeal",
+    "D11503": "Cereals",
+    "D11504": "Cereal Bars and Granola Bars",
+    "D11505": "Toaster Pastries and Baking Seeds",
+    "D11600": "Protein Bars and Energy Bars",
+    "D11601": "Meal Replacement Bars",
+    "D11715": "Canned Vegetables",
+    "D11716": "Dry Grains and Rice",
+    "D11717": "Pasta",
+    "D11718": "Pasta Sauces",
+    "D11719": "Cooking Oils",
+    "D11720": "Canned and Jarred Vegetables",
+    "D11721": "Canned and Jarred Fruits",
+    "D11722": "Syrups",
+    "D11723": "Honey",
+    "D11725": "Nut Butters and Spreads",
+    "D11726": "Vinegars",
+    "D11727": "Baking Mixes and Supplies",
+    "D11728": "Spices and Seasonings",
+    "D11729": "Olives and Pickled Vegetables",
+    "D11731": "Canned Chicken & Poultry",
+    "D11733": "Cooking Sauces",
+    "D11734": "Salad Dressings",
+    "D11735": "Canned Mediterranean Foods",
+    "D11736": "Condiments and Sauces",
+    "D11737": "Broths and Soups",
+    "D11738": "Chili and Stews",
+    "D11739": "Instant Meals",
+    "D11740": "Salsas",
+    "D11800": "Raw Nuts",
+    "D11801": "Roasted & Salted Nuts",
+    "D11802": "Savory Nut Mixes",
+    "D11803": "Trail Mixes & Trek Mixes",
+    "D11804": "Candied & Sweet Nuts",
+    "D11901": "Dried Fruits",
+    "D11902": "Fruit & Nut Bites",
+    "D11903": "Dried Apricots",
+    "D11904": "Dried Cranberries & Cherries",
+    "D11905": "Fruit Bars",
+    "D11906": "Freeze-Dried Fruits",
+    "D11907": "Dried Mango & Tropical Fruits",
+    "D11908": "Coconut Products",
+    "D11909": "Raisins",
+    "D11910": "Exotic Dried Fruits",
+    "D12001": "Dog Food",
+    "D12002": "Cat Food",
+    "D12003": "Dog Treats",
+    "D12004": "Gourmet Dog Treats",
+    "D12005": "Cat Treats",
+    "D20101": "Bread & Tortillas",
+    "D20103": "Flour Tortillas",
+    "D20104": "Specialty Breads & Rolls",
+    "D20105": "Bagels & Sandwich Breads",
+    "D20106": "Bakery Treats",
+    "D20200": "Sushi Rolls",
+    "D20202": "Refrigerated Ready-to-Eat Meals",
+    "D20204": "Refrigerated Dips & Spreads",
+    "D20205": "Wraps & Sandwiches",
+    "D20206": "Pizza Dough",
+    "D20209": "Salsa & Pico de Gallo",
+    "D20211": "Refrigerated Salads",
+    "D20212": "Refrigerated Soups",
+    "D20213": "Refrigerated Burritos",
+    "D20301": "Chicken Eggs",
+    "D20302": "Brown Eggs",
+    "D20304": "Large & Extra-Large Eggs",
+    "D20305": "Organic Eggs",
+    "D20306": "Pasture-Raised Eggs",
+    "D20402": "Block & Shredded Cheese",
+    "D20403": "Cheese and Cheese Alternatives",
+    "D20500": "Creamers",
+    "D20501": "Dairy Cream",
+    "D20502": "Yogurt & Cottage Cheese",
+    "D20503": "Butter",
+    "D20504": "Plain Yogurt",
+    "D20505": "Non-Dairy Creamers",
+    "D20506": "Milk & Dairy Alternatives",
+    "D20507": "Flavored Yogurts",
+    "D20508": "Buttery Spreads",
+    "D20509": "Half & Half & Whipping Cream",
+    "D20510": "Almond Drinks",
+    "D20600": "Sausages & Cooked Meats",
+    "D20601": "Fresh Chicken & Beef",
+    "D20602": "Fresh Seafood",
+    "D20603": "Beef Steaks & Cuts",
+    "D20604": "Fresh Chicken",
+    "D20605": "Fresh Lamb",
+    "D20606": "Pork",
+    "D20607": "Chicken Sausages",
+    "D20608": "Turkey",
+    "D20609": "Salmon & Seafood",
+    "D20700": "Cold-Pressed Juices and Shots",
+    "D20701": "Smoothies and Fruit Juices",
+    "D20800": "Salad Greens & Lettuce",
+    "D20802": "Fresh Vegetables",
+    "D20803": "Fresh Herbs",
+    "D20901": "Indoor Plants",
+    "D20902": "Bouquets",
+    "D20903": "Single Stem Florals",
+    "D21001": "Refrigerated Meats",
+    "D21002": "Refrigerated Pasta & Ravioli",
+    "D21003": "Refrigerated Dips & Hummus",
+    "D21004": "Smoked Salmon & Trout",
+    "D21005": "Refrigerated Sauces & Pesto",
+    "D21006": "Plant-Based Proteins & Tofu",
+    "D21007": "Refrigerated Dairy Alternatives",
+    "D21008": "Charcuterie Meats",
+    "D30001": "Red and White Wines",
+    "D30010": "Flavored Canned Wines",
+    "D30012": "Sparkling Wines & Mimosas",
+    "D30101": "Rosé Wines",
+    "D30106": "Specialty Red Wines",
+    "D30107": "Dessert Wines",
+    "D30108": "International Red Wines",
+    "D30109": "Rosé Magnums",
+    "D30110": "Sparkling Wines & Champagnes",
+    "D30200": "Hard Seltzers",
+    "D30201": "Craft Beers & Pilsners",
+    "D30202": "Imported Beers & Ciders",
+    "D30203": "Non-Alcoholic Beers",
+    "D30204": "Trader Joe's Private Label Beers",
+    "D30205": "Non-Alcoholic Beverages & Hops",
+    "D30301": "Vodka",
+    "D40102": "Work Apparel",
+    "D40202": "Store Stickers & Labels",
+    "D40302": "Demo Supplies",
+    "D40305": "Demo Cooking Equipment",
+    "D40400": "Fearless Flyers & Promotions",
+    "D40401": "Store Promotions & Samples",
+    "D40500": "Bags & Packaging",
+    "D40599": "Additional Bags & Packaging",
+    "D40600": "Store Forms",
+    "D40601": "Marketing & Information Brochures",
+    "D40602": "Consumer Literature",
+    "D40604": "Envelopes",
+    "D40701": "Store Signage",
+    "D40800": "Store Equipment & Maintenance",
+    "D40801": "Restroom Supplies",
+    "D40802": "Janitorial & Cleaning Supplies",
+    "D40803": "Point of Sale and Receipt Supplies",
+    "D40804": "Store Supplies - Miscellaneous",
+    "D40900": "Gift Cards and Gift Card Holders",
+    "D41100": "Display Baskets",
+}
+
 def build_query(page, with_availability=True):
     availability_filter = ', availability: { match: "1" }' if with_availability else ''
 
@@ -10,11 +223,8 @@ def build_query(page, with_availability=True):
     fields = [
         "attribute_set_id",
         "availability",
-        "canonical_url",
         "category_code",
-        "color",
         "context_image",
-        "country_of_manufacture",
         "country_of_origin",
         "created_at",
         "first_published_date",
@@ -23,22 +233,13 @@ def build_query(page, with_availability=True):
         "image_file",
         "is_imported",
         "item_characteristics",
-        "item_description",
         "item_story_qil",
         "item_title",
         "last_published_date",
-        "manufacturer",
         "marketing_category_code",
-        "meta_description",
-        "meta_keyword",
-        "meta_title",
         "name",
-        "new_from_date",
         "new_product",
-        "new_to_date",
-        "only_x_left_in_stock",
         "options_container",
-        "other_images",
         "primary_image",
         "product_label",
         "promotion",
@@ -50,32 +251,21 @@ def build_query(page, with_availability=True):
         "sales_uom_code",
         "sales_uom_description",
         "sku",
-        "special_from_date",
-        "special_price",
-        "special_to_date",
         "staged",
         "stock_status",
-        "swatch_image",
-        "tier_price",
         "type_id",
         "uid",
         "updated_at",
         "url_key",
-        "url_path",
         "url_suffix",
         "use_and_demo",
         "is_returnable",
-        "price { maximalPrice { amount { currency value } } minimalPrice { amount { currency value } } regularPrice { amount { currency value } } }",
-        "tier_prices { customer_group_id percentage_value qty value website_id }",
         "image { url label disabled }",
         "fun_tags",
         "url_rewrites { url parameters { name value } }",
         "thumbnail { disabled label url }",
-        "product_links { link_type linked_product_sku linked_product_type sku }",
         "primary_image_meta { metadata url }",
-        "other_images_meta { metadata url }",
         "media_gallery { disabled label url }",
-        "media_gallery_entries { disabled file id label media_type types uid }",
         "allergens { display_sequence ingredient }"
     ]
 
@@ -146,10 +336,39 @@ def fetch_all_data(with_availability=True):
     del data['data']['products']['page_info']
     data = data['data']
 
-    data['products']['items'].sort(key=lambda x: (x['name'], x['id'], x['sku'], x['uid']))
+    data['products']['items'].sort(key=lambda x: (x['item_title'], x['name'], x['id'], x['sku'], x['uid']))
     [panel['details'].sort(key=lambda detail: detail['nutritional_item']) for product in data['products']['items'] if isinstance(product.get('nutrition'), list) for panel in product['nutrition'] if isinstance(panel.get('details'), list)]
 
     return data
+
+def cleanup_data(data):
+    keys_to_keep = [
+        "item_title",
+        "item_story_qil",
+        "retail_price",
+        "country_of_origin",
+        "category_code",
+        "sku",
+        "name"
+    ]
+
+    # Create new list with filtered data
+    filtered_items = [
+        {key: item[key] for key in keys_to_keep if key in item}
+        for item in data['products']['items'] if item["category_code"] != NON_CONSUMER_PRODUCT_CODE
+    ]
+
+    # Add category name to the filtered items
+    for item in filtered_items:
+        category_code = item.get("category_code")
+        if category_code in CATEGORY_CODE_MAP:
+            item["category_code"] = CATEGORY_CODE_MAP[category_code]
+        if item.get("retail_price"):
+            item["retail_price"] = f"${item['retail_price']}"
+        if item.get("name"):
+            item["name"] = item["name"].title()
+
+    return (filtered_items, data['products']['total_count'])
 
 def main():
     # First fetch with availability
@@ -157,14 +376,21 @@ def main():
 
     # Write the available items to a JSON file
     with open('data.json', 'w') as f:
-        json.dump(available_items, f, indent=2, sort_keys=True)
+        json.dump(available_items, f, indent=1, sort_keys=True)
+
+
+    available_items_clean, product_count = cleanup_data(available_items)
+    with open('product_count.txt', 'w') as f:
+        f.write(str(product_count))
+    with open('clean_data.json', 'w') as f:
+        json.dump(available_items_clean, f, indent=1, sort_keys=True)
 
     # Second fetch without availability
     all_items = fetch_all_data(with_availability=False)
 
     # Write all items (with and without availability) to a JSON file
     with open('all_data.json', 'w') as f:
-        json.dump(all_items, f, indent=2, sort_keys=True)
+        json.dump(all_items, f, indent=1, sort_keys=True)
 
 if __name__ == '__main__':
     main()
