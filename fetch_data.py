@@ -1,3 +1,5 @@
+from collections import defaultdict
+import re
 import requests
 import json
 
@@ -341,12 +343,16 @@ def fetch_all_data(with_availability=True):
 
     return data
 
+def clean_string(s):
+    if s is None:
+        return ''
+    return re.sub(r'\s+', ' ', s.replace("\n", " ").replace("\r", " ").strip()).encode().decode('utf-8')
+
 def cleanup_data(data):
     keys_to_keep = [
         "item_title",
         "item_story_qil",
         "retail_price",
-        "country_of_origin",
         "category_code",
         "sku",
         "name"
@@ -354,21 +360,47 @@ def cleanup_data(data):
 
     # Create new list with filtered data
     filtered_items = [
-        {key: item[key] for key in keys_to_keep if key in item}
-        for item in data['products']['items'] if item["category_code"] != NON_CONSUMER_PRODUCT_CODE
+        {key: clean_string(item[key]) for key in keys_to_keep if key in item}
+        for item in data['products']['items']
     ]
 
     # Add category name to the filtered items
     for item in filtered_items:
-        category_code = item.get("category_code")
+        category_code = item.pop("category_code", "")
         if category_code in CATEGORY_CODE_MAP:
-            item["category_code"] = CATEGORY_CODE_MAP[category_code]
+            item["category"] = CATEGORY_CODE_MAP[category_code]
+        else:
+            item["category"] = category_code
+
         if item.get("retail_price"):
-            item["retail_price"] = f"${item['retail_price']}"
+            item["cost"] = f"${item.pop('retail_price')}"
+
         if item.get("name"):
             item["name"] = item["name"].title()
 
-    return (filtered_items, data['products']['total_count'])
+        if item.get("item_title"):
+            title = item.pop("item_title").title()
+            name = item.get("name", "")
+            if name in title: # name is a substring or exact match of title, set name to the full title
+                item["name"] = title
+            elif not title in name: # title is not a substring of name, append title so both are kept
+                item["title"] = title
+            # else: title is a substring of name, keep name as is and there is no need to add title
+
+        story = item.pop("item_story_qil")
+        if story:
+            item["description"] = story
+
+    # Create a defaultdict to group by `category_code`
+    grouped_data = defaultdict(dict)
+
+    # Iterate over each item in the list
+    for item in filtered_items:
+        category = item.get('category')
+        sku = item.pop('sku')
+        grouped_data[category][sku] = item
+
+    return (grouped_data, data['products']['total_count'])
 
 def main():
     # First fetch with availability
@@ -383,7 +415,7 @@ def main():
     with open('product_count.txt', 'w') as f:
         f.write(str(product_count))
     with open('clean_data.json', 'w') as f:
-        json.dump(available_items_clean, f, indent=1, sort_keys=True)
+        json.dump(available_items_clean, f, indent=1, sort_keys=True, ensure_ascii=False)
 
     # Second fetch without availability
     all_items = fetch_all_data(with_availability=False)
