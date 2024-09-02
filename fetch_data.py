@@ -438,7 +438,7 @@ def cleanup_data(data):
         if item.pop("published") == 0:
             item.pop("url")
 
-        item['available'] = True if item.pop("availability") == 1 else False
+        item['available'] = True if item.pop("availability") == "1" else False
 
     grouped_data = defaultdict(dict)
     item_count = 0
