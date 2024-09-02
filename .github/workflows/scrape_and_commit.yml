@@ -28,14 +28,16 @@ jobs:
           git add clean_data.json
 
           # Generate patch for `clean_data.json` if there are changes.
-          if git diff --cached --quiet --exit-code --name-only | grep -q '^clean_data.json$'; then
-            echo "No changes to clean_data.json."
-          else
+          if git diff --cached --exit-code --name-only | grep -q '^clean_data.json$'; then
             echo "Changes detected in clean_data.json. Generating patch."
             git diff --cached clean_data.json > clean_data.patch
+          else
+            echo "No changes detected in clean_data.json. Skipping patch."
           fi
 
       - name: Send patch to Discord webhook if it exists
+        env: # Or as an environment variable
+          WEBHOOK_LOCATION: ${{ secrets.WEBHOOK_LOCATION }}
         run: |
           if [ -f "clean_data.patch" ]; then
             echo "Sending patch to Discord webhook."
