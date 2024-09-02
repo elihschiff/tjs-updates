@@ -22,12 +22,34 @@ jobs:
         run: python fetch_data.py
       # - name: Create meta.json file
       #   run: echo {\"last_updated\":\"$(date --iso-8601=seconds -u)\"} > $GITHUB_WORKSPACE/meta.json
+
+      - name: Check if clean_data.json has changed and generate patch if it has
+        run: |
+          git add clean_data.json
+
+          # Generate patch for `clean_data.json` if there are changes.
+          if git diff --cached --quiet --exit-code --name-only | grep -q '^clean_data.json$'; then
+            echo "No changes to clean_data.json."
+          else
+            echo "Changes detected in clean_data.json. Generating patch."
+            git diff --cached clean_data.json > clean_data.patch
+          fi
+
+      - name: Send patch to Discord webhook if it exists
+        if: exists('clean_data.patch')
+        run: |
+          curl -X POST -H "Content-Type: multipart/form-data" \
+          -F "file=@clean_data.patch" \
+          https://discord.com/api/webhooks/$WEBHOOK_LOCATION
+
+          rm clean_data.patch
+
       - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "TJs-Scraper" && git config user.email "scraper@users.noreply.github.com"
-          
+          git config user.name "TJs-Scraper" && git config user.email "tjs-scraper@users.noreply.github.com"
+
           git add .
 
           # Check if there are any changes to commit
