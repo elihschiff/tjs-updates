@@ -36,13 +36,17 @@ jobs:
           fi
 
       - name: Send patch to Discord webhook if it exists
-        if: exists('clean_data.patch')
         run: |
-          curl -X POST -H "Content-Type: multipart/form-data" \
-          -F "file=@clean_data.patch" \
-          https://discord.com/api/webhooks/$WEBHOOK_LOCATION
+          if [ -f "clean_data.patch" ]; then
+            echo "Sending patch to Discord webhook."
+            curl -X POST -H "Content-Type: multipart/form-data" \
+            -F "file=@clean_data.patch" \
+            https://discord.com/api/webhooks/$WEBHOOK_LOCATION
 
-          rm clean_data.patch
+            rm clean_data.patch
+          else
+            echo "No patch file to send."
+          fi
 
       - name: Commit and push changes
         env:
