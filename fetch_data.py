@@ -1,13 +1,17 @@
 from collections import defaultdict
 import re
-import requests
+import aiohttp
+import asyncio
 import json
 import unicodedata
 
-MY_STORE_NUMBER = 544
+PAGE_SIZE = 1000
+STORE_NUMBERS = [544, 571]
 
-# This code is for items that the store buys for itself like printer paper
-NON_CONSUMER_PRODUCT_CODE = "D40702"
+STORE_MAP = {
+    544: "32nd",
+    571: "59th",
+}
 
 # This map is made by an ai and may not be 100% accurate
 CATEGORY_CODE_MAP = {
@@ -181,15 +185,15 @@ CATEGORY_CODE_MAP = {
     "D21006": { "name": "Plant-Based Proteins & Tofu", "hide": False},
     "D21007": { "name": "Refrigerated Dairy Alternatives", "hide": False},
     "D21008": { "name": "Charcuterie Meats", "hide": False},
-    "D30001": { "name": "Red and White Wines", "hide": False},
-    "D30010": { "name": "Flavored Canned Wines", "hide": False},
-    "D30012": { "name": "Sparkling Wines & Mimosas", "hide": False},
-    "D30101": { "name": "Rosé Wines", "hide": False},
-    "D30106": { "name": "Specialty Red Wines", "hide": False},
-    "D30107": { "name": "Dessert Wines", "hide": False},
-    "D30108": { "name": "International Red Wines", "hide": False},
-    "D30109": { "name": "Rosé Magnums", "hide": False},
-    "D30110": { "name": "Sparkling Wines & Champagnes", "hide": False},
+    "D30001": { "name": "Red and White Wines", "hide": True},
+    "D30010": { "name": "Flavored Canned Wines", "hide": True},
+    "D30012": { "name": "Sparkling Wines & Mimosas", "hide": True},
+    "D30101": { "name": "Rosé Wines", "hide": True},
+    "D30106": { "name": "Specialty Red Wines", "hide": True},
+    "D30107": { "name": "Dessert Wines", "hide": True},
+    "D30108": { "name": "International Red Wines", "hide": True},
+    "D30109": { "name": "Rosé Magnums", "hide": True},
+    "D30110": { "name": "Sparkling Wines & Champagnes", "hide": True},
     "D30200": { "name": "Hard Seltzers", "hide": False},
     "D30201": { "name": "Craft Beers & Pilsners", "hide": False},
     "D30202": { "name": "Imported Beers & Ciders", "hide": False},
@@ -220,19 +224,23 @@ CATEGORY_CODE_MAP = {
     "D11714": { "name": "Spicy and Specialty Sauces", "hide": False },
     "D20100": { "name": "Specialty Bakery Items", "hide": False },
     "D20203": { "name": "Refrigerated Dips & Appetizers", "hide": False },
-    "D30002": { "name": "Rosé Wines", "hide": False },
-    "D30007": { "name": "Private Label Wines", "hide": False },
-    "D30008": { "name": "Specialty Red Wines", "hide": False },
-    "D30011": { "name": "Rosé Wines", "hide": False },
-    "D30303": { "name": "Tequila", "hide": False },
-    "D30305": { "name": "Rum", "hide": False },
-    "D30307": { "name": "Bourbon", "hide": False },
-    "D30308": { "name": "Liqueurs and Specialty Spirits", "hide": False },
-    "D30309": { "name": "Mezcal", "hide": False },
-    "D30311": { "name": "Cocktails & Ready-to-Drink Beverages", "hide": False }
+    "D30002": { "name": "Rosé Wines", "hide": True },
+    "D30007": { "name": "Private Label Wines", "hide": True },
+    "D30008": { "name": "Specialty Red Wines", "hide": True },
+    "D30011": { "name": "Rosé Wines", "hide": True },
+    "D30303": { "name": "Tequila", "hide": True },
+    "D30305": { "name": "Rum", "hide": True },
+    "D30307": { "name": "Bourbon", "hide": True },
+    "D30308": { "name": "Liqueurs and Specialty Spirits", "hide": True },
+    "D30309": { "name": "Mezcal", "hide": True },
+    "D30311": { "name": "Cocktails & Ready-to-Drink Beverages", "hide": True },
+    "D30104": { "name": "Wines", "hide": True },
+    "D30302": { "name": "Scotch", "hide": True },
+    "D30304": { "name": "Brandy", "hide": True },
+    "D30306": { "name": "Gin", "hide": True },
 }
 
-def build_query(page, query_type):
+async def build_query(page, query_type, store_number):
     # Create a filter based on the query type
     availability_filter = None
     if query_type == 'availability':
@@ -242,52 +250,17 @@ def build_query(page, query_type):
 
     # Base fields list
     fields = [
-        "attribute_set_id",
-        "availability",
-        "category_code",
-        "context_image",
-        "country_of_origin",
-        "created_at",
-        "first_published_date",
-        "gift_message_available",
-        "id",
-        "image_file",
-        "is_imported",
-        "item_characteristics",
-        "item_story_qil",
-        "item_title",
-        "last_published_date",
-        "marketing_category_code",
-        "name",
-        "new_product",
-        "options_container",
-        "primary_image",
-        "product_label",
-        "promotion",
-        "published",
-        "rating_summary",
-        "retail_price",
-        "review_count",
-        "sales_size",
-        "sales_uom_code",
-        "sales_uom_description",
-        "sku",
-        "staged",
-        "stock_status",
-        "type_id",
-        "uid",
-        "updated_at",
-        "url_key",
-        "url_suffix",
-        "use_and_demo",
-        "is_returnable",
-        "image { url label disabled }",
-        "fun_tags",
-        "url_rewrites { url parameters { name value } }",
-        "thumbnail { disabled label url }",
-        "primary_image_meta { metadata url }",
-        "media_gallery { disabled label url }",
-        "allergens { display_sequence ingredient }"
+        "attribute_set_id", "availability", "category_code", "context_image",
+        "country_of_origin", "created_at", "first_published_date", "gift_message_available",
+        "id", "image_file", "is_imported", "item_characteristics", "item_story_qil",
+        "item_title", "last_published_date", "marketing_category_code", "name", "new_product",
+        "options_container", "primary_image", "product_label", "promotion", "published",
+        "rating_summary", "retail_price", "review_count", "sales_size", "sales_uom_code",
+        "sales_uom_description", "sku", "staged", "stock_status", "type_id", "uid", "updated_at",
+        "url_key", "url_suffix", "use_and_demo", "is_returnable", "image { url label disabled }",
+        "fun_tags", "url_rewrites { url parameters { name value } }",
+        "thumbnail { disabled label url }", "primary_image_meta { metadata url }",
+        "media_gallery { disabled label url }", "allergens { display_sequence ingredient }"
     ]
 
     fields_query = "\n".join(fields)
@@ -296,9 +269,9 @@ def build_query(page, query_type):
     query Products {{
         products(
             sort: {{ name: ASC }}
-            filter: {{ store_code: {{ eq: "{MY_STORE_NUMBER}" }}{availability_filter if availability_filter else ''} }}
+            filter: {{ store_code: {{ eq: "{store_number}" }}{availability_filter if availability_filter else ''} }}
             currentPage: {page}
-            pageSize: 1000
+            pageSize: {PAGE_SIZE}
         ) {{
             total_count
             page_info {{
@@ -328,26 +301,26 @@ def convert_title_to_url_slug(title):
     # Return the slug (URL-friendly string)
     return title_slug
 
-def fetch_page(page, query_type):
-    query = build_query(page, query_type)
-    response = requests.post('https://www.traderjoes.com/api/graphql', json={'query': query})
-    if response.status_code == 200:
-        improved_response = response.json()
-        for product in improved_response['data']['products']['items']:
-            product["url"] = f"https://www.traderjoes.com/home/products/pdp/{convert_title_to_url_slug(product['item_title'])}-{product['sku']}"
+async def fetch_page(session, page, query_type, store_number):
+    query = await build_query(page, query_type, store_number)
+    async with session.post('https://www.traderjoes.com/api/graphql', json={'query': query}) as response:
+        if response.status == 200:
+            improved_response = await response.json()
+            for product in improved_response['data']['products']['items']:
+                product["url"] = f"https://www.traderjoes.com/home/products/pdp/{convert_title_to_url_slug(product['item_title'])}-{product['sku']}"
 
-        return improved_response
-    else:
-        raise Exception(f"Query failed with status code {response.status_code}: {response.text}")
+            return improved_response
+        else:
+            raise Exception(f"Query failed with status code {response.status}: {await response.text()}")
 
-def fetch_all_data(query_type=None):
+async def fetch_all_data(session, store_number, query_type=None):
     all_items = []
     current_page = 1
     total_pages = None
 
     while total_pages is None or current_page <= total_pages:
-        print(f"Fetching page {current_page}/{total_pages if total_pages else '?'} ({query_type})")
-        data = fetch_page(current_page, query_type)
+        print(f"Fetching page {current_page}/{total_pages if total_pages else '?'} for store {store_number} ({query_type})")
+        data = await fetch_page(session, current_page, query_type, store_number)
         products_data = data['data']['products']
         all_items.extend(products_data['items'])
         total_pages = products_data['page_info']['total_pages']
@@ -357,29 +330,49 @@ def fetch_all_data(query_type=None):
     del data['data']['products']['page_info']
     return data
 
-def deduplicate_items(available_data, published_data):
-    # Use SKU as a unique identifier to deduplicate
+def merge_store_data(datasets):
+    merged_data = defaultdict(dict)
+
+    for i, data in enumerate(datasets):
+        store_number = STORE_NUMBERS[i]
+        store_key = STORE_MAP[store_number]  # Map store number to store key (e.g., "32nd", "59th")
+
+        for item in data['data']['products']['items']:
+            sku = item['sku']
+            if sku not in merged_data:
+                merged_data[sku] = item
+                merged_data[sku]['available'] = [{store_key: item.pop('availability', None) == "1"}]
+            else:
+                if 'retail_price' in item and item['retail_price']:
+                    if 'retail_price' in merged_data[sku]:
+                        merged_data[sku]['retail_price'] = f"${merged_data[sku]['retail_price']} or ${item['retail_price']}"
+                    else:
+                        merged_data[sku]['retail_price'] = item['retail_price']
+
+                # Update availability array with current store data
+                merged_data[sku]['available'].append({store_key: item.pop('availability', None) == "1"})
+
+                # Merge additional details from this store's data
+                merged_data[sku] = {**merged_data[sku], **item}
+
+    return merged_data
+
+def deduplicate_items(available_data_, published_data_):
     sku_to_item = {}
 
-    # Add available items to the dictionary first
-    for item in available_data['data']['products']['items']:
+    for item in available_data_['data']['products']['items']:
         sku_to_item[item['sku']] = item
 
-    # Then add published items, overwriting if needed
-    for item in published_data['data']['products']['items']:
+    for item in published_data_['data']['products']['items']:
         sku_to_item[item['sku']] = item
 
-    # Combine into a single list
     deduplicated_items = list(sku_to_item.values())
 
-    # Update the data structure
-    deduplicated_data = available_data  # use the available_data as a base
-    deduplicated_data['data']['products']['items'] = deduplicated_items
+    deduplicated_data = {"data": {"products": {"items": deduplicated_items}}}
 
-    return deduplicated_data['data']
+    return deduplicated_data
 
 def clean_string(s):
-    # Check if s is a string
     if not isinstance(s, str):
         return s
     return re.sub(r'\s+', ' ', s.replace("\n", " ").replace("\r", " ").strip()).encode().decode('utf-8')
@@ -395,16 +388,14 @@ def cleanup_data(data):
         "product_label",
         "url",
         "published",
-        "availability",
+        "available",
     ]
 
-    # Create new list with filtered data
     filtered_items = [
         {key: clean_string(item[key]) for key in keys_to_keep if key in item}
         for item in data['products']['items']
     ]
 
-    # Add category name to the filtered items
     for item in filtered_items:
         category_code = item.get("category_code", "")
         if category_code in CATEGORY_CODE_MAP:
@@ -421,11 +412,10 @@ def cleanup_data(data):
         if item.get("item_title"):
             title = item.pop("item_title").title()
             name = item.get("name", "")
-            if name in title: # name is a substring or exact match of title, set name to the full title
+            if name in title:
                 item["name"] = title
-            elif not title in name: # title is not a substring of name, append title so both are kept
+            elif not title in name:
                 item["title"] = title
-            # else: title is a substring of name, keep name as is and there is no need to add title
 
         story = item.pop("item_story_qil")
         if story:
@@ -438,7 +428,9 @@ def cleanup_data(data):
         if item.pop("published") == 0:
             item.pop("url")
 
-        item['available'] = True if item.pop("availability") == "1" else False
+        if item.get("available"):
+            available = item.pop("available")
+            item["available"] = ", ".join([f"{key}: {value}" for store in available for key, value in store.items()])
 
     grouped_data = defaultdict(dict)
     item_count = 0
@@ -450,29 +442,40 @@ def cleanup_data(data):
             item_count += 1
             grouped_data[category_info['name']][sku] = item
 
-    return (grouped_data, item_count)
+    return grouped_data, item_count
 
-def main():
-    available_items_data = fetch_all_data(query_type='availability')
-    published_items_data = fetch_all_data(query_type='published')
-    merged_data = deduplicate_items(available_items_data, published_items_data)
+async def main():
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for store_number in STORE_NUMBERS:
+            tasks.append(fetch_all_data(session, store_number, query_type='availability'))
+            tasks.append(fetch_all_data(session, store_number, query_type='published'))
 
-    # Process and save the merged data
-    with open('data.json', 'w') as f:
-        json.dump(merged_data, f, indent=1, sort_keys=True)
+        results = await asyncio.gather(*tasks)
 
+        store_datasets = []
+        for i in range(0, len(results), 2):
+            available_items_data = results[i]
+            published_items_data = results[i + 1]
+            merged_data = deduplicate_items(available_items_data, published_items_data)
+            store_datasets.append(merged_data)
 
-    available_items_clean, product_count = cleanup_data(merged_data)
-    with open('product_count.txt', 'w') as f:
-        f.write(str(product_count))
-    with open('clean_data.json', 'w') as f:
-        json.dump(available_items_clean, f, indent=1, sort_keys=True, ensure_ascii=False)
+        final_merged_data = merge_store_data(store_datasets)
 
+        # Process and save the merged data
+        with open('data.json', 'w') as f:
+            json.dump(final_merged_data, f, indent=1, sort_keys=True)
 
-    all_items = fetch_all_data()
-    # Write all items (with and without availability) to a JSON file
-    with open('all_data.json', 'w') as f:
-        json.dump(all_items, f, indent=1, sort_keys=True)
+        available_items_clean, product_count = cleanup_data({"products": {"items": list(final_merged_data.values())}})
+        with open('product_count.txt', 'w') as f:
+            f.write(str(product_count))
+
+        with open('clean_data.json', 'w') as f:
+            json.dump(available_items_clean, f, indent=1, sort_keys=True, ensure_ascii=False)
+
+        all_items = await fetch_all_data(session, STORE_NUMBERS[0], query_type=None)
+        with open('all_data.json', 'w') as f:
+            json.dump(all_items, f, indent=1, sort_keys=True)
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
